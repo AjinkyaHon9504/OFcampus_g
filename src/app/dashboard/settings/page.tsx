@@ -19,6 +19,7 @@ interface S {
   hasApollo: boolean;
   hasHunter: boolean;
   hasClaude: boolean;
+  hasGemini: boolean;
 }
 interface Att { id: string; kind: string; filename: string }
 
@@ -26,7 +27,7 @@ export default function Settings() {
   const { data, reload } = useData<S>("/api/settings");
   const att = useData<Att[]>("/api/attachments");
   const [f, setF] = useState<S | null>(null);
-  const [keys, setKeys] = useState({ apolloKey: "", hunterKey: "", claudeKey: "" });
+  const [keys, setKeys] = useState({ apolloKey: "", hunterKey: "", claudeKey: "", geminiKey: "" });
   const [toast, setToast] = useState<string | null>(null);
   useEffect(() => { if (data) setF(data); }, [data]);
   if (!f) return <p className="text-sm text-slate-500">Loading…</p>;
@@ -39,7 +40,7 @@ export default function Settings() {
     const body: Record<string, unknown> = { ...f };
     for (const [k, v] of Object.entries(keys)) if (v) body[k] = v;
     await api("/api/settings", { method: "PUT", body });
-    setKeys({ apolloKey: "", hunterKey: "", claudeKey: "" });
+    setKeys({ apolloKey: "", hunterKey: "", claudeKey: "", geminiKey: "" });
     setToast("Settings saved");
     reload();
   }
@@ -117,6 +118,7 @@ export default function Settings() {
           ["apolloKey", "Apollo.io — finds founders/HR + work emails", f.hasApollo],
           ["hunterKey", "Hunter.io — fallback finder + email verification", f.hasHunter],
           ["claudeKey", "Anthropic (Claude) — writes the personalised opening line", f.hasClaude],
+          ["geminiKey", "Google Gemini — web research on Find contact for companies outside your list", f.hasGemini],
         ] as const).map(([k, label, has]) => (
           <div key={k}>
             <label className="label">{label} {has && <span className="ml-1 normal-case text-emerald-600">✓ saved</span>}</label>

@@ -83,6 +83,7 @@ model Settings {
   apolloKeyEnc  String?
   hunterKeyEnc  String?
   claudeKeyEnc  String?
+  geminiKeyEnc  String?
 }
 
 model Attachment {
@@ -115,6 +116,7 @@ model Company {
   whoToContact String    @default("") @db.Text
   sourceUrl    String    @default("")
   domain       String?
+  linkedinUrl  String?
   seenOn       String    @default("")
   teamSize     Int?
   route        String    @default("HR") // FOUNDER | HR | MIXED
@@ -143,7 +145,8 @@ model Contact {
   emailStatus     String    @default("none") // verified | likely | unverified | none
   phone           String?
   linkedinUrl     String?
-  source          String    @default("csv") // csv | apollo | hunter | manual
+  source          String    @default("csv") // csv | web | apollo | hunter | manual
+  sourceUrl       String? // where a web-researched person/email was found
   linkedinMatch   Boolean   @default(false) // CSV name/LinkedIn matched the provider's record
   confidence      Int       @default(0)
   status          String    @default("NEW") // NEW | QUEUED | SENT | FOLLOW_UP_DUE | REPLIED | BOUNCED | DO_NOT_CONTACT

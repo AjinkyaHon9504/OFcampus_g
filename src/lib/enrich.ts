@@ -14,6 +14,7 @@ import {
 export interface Keys {
   apollo: string | null;
   hunter: string | null;
+  gemini: string | null;
 }
 
 export async function keysFor(userId: string): Promise<Keys> {
@@ -21,6 +22,7 @@ export async function keysFor(userId: string): Promise<Keys> {
   return {
     apollo: decrypt(s?.apolloKeyEnc) ?? (process.env.APOLLO_API_KEY || null),
     hunter: decrypt(s?.hunterKeyEnc) ?? (process.env.HUNTER_API_KEY || null),
+    gemini: decrypt(s?.geminiKeyEnc) ?? (process.env.GEMINI_API_KEY || null),
   };
 }
 
@@ -105,8 +107,8 @@ export async function enrichCompany(
         const people = await apolloSearchPeople(keys.apollo, org.id, titles, seniorities, 15);
         found.push(...people.map(fromApollo));
 
-        // People named in the sheet but not returned by search: look them up directly.
-        for (const c of company.contacts.filter((c) => c.source === "csv")) {
+        // People named in the sheet or found by web research but not returned by search: look them up directly.
+        for (const c of company.contacts.filter((c) => c.source === "csv" || c.source === "web")) {
           if (found.some((f) => samePerson(f, c))) continue;
           const [first, ...rest] = c.name.split(" ");
           if (!rest.length && !c.linkedinUrl) continue;
@@ -161,8 +163,9 @@ export async function enrichCompany(
       firstName: p.firstName,
       title: p.title || csvMatch?.title || "",
       persona: p.persona,
-      email: p.email,
-      emailStatus: p.email ? p.emailStatus : "none",
+      // never wipe an email we already had (public careers address, manual entry)
+      email: p.email ?? csvMatch?.email ?? null,
+      emailStatus: p.email ? p.emailStatus : csvMatch?.email ? csvMatch.emailStatus : "none",
       phone: p.phone,
       linkedinUrl: p.linkedinUrl ?? csvMatch?.linkedinUrl ?? null,
       source: p.source,
@@ -179,7 +182,22 @@ export async function enrichCompany(
       added++;
     }
   }
-  const withEmail = targets.filter((t) => t.email).length;
+  // Sheet/web-researched people the providers didn't return: try Hunter's finder by name.
+  let extraEmails = 0;
+  if (keys.hunter && domain) {
+    for (const c of company.contacts) {
+      if (c.email || (c.source !== "csv" && c.source !== "web") || targets.some((t) => samePerson(c, t))) continue;
+      const [first, ...rest] = c.name.split(" ");
+      const r = await hunterFindEmail(keys.hunter, domain, first, rest.join(" ")).catch(() => null);
+      if (!r) continue;
+      await prisma.contact.update({
+        where: { id: c.id },
+        data: { email: r.email, emailStatus: r.score >= 90 ? "verified" : "likely", confidence: r.score, linkedinUrl: c.linkedinUrl ?? r.linkedin },
+      });
+      extraEmails++;
+    }
+  }
+  const withEmail = targets.filter((t) => t.email).length + extraEmails;
   const note = notes.join("; ") || `found ${targets.length} (${withEmail} with email)`;
   await prisma.company.update({ where: { id: company.id }, data: { domain, enrichedAt: new Date(), enrichNote: note } });
   return { company: company.name, added, withEmail, note };

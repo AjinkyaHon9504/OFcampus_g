@@ -12,6 +12,7 @@ export interface ContactRow {
   linkedinUrl: string | null;
   linkedinMatch: boolean;
   source: string;
+  sourceUrl: string | null;
   confidence: number;
   status: string;
   threadId: string | null;
@@ -54,7 +55,7 @@ export function ContactTable({
                 <div className="flex items-center gap-1.5 font-medium">
                   {onEdit ? <button className="hover:text-indigo-700" onClick={() => onEdit(c)}>{c.name}</button> : c.name}
                   {c.linkedinUrl && (
-                    <a href={c.linkedinUrl} target="_blank" rel="noreferrer" title={c.linkedinMatch ? "LinkedIn cross-checked with your sheet" : "LinkedIn"} className="text-[11px] font-semibold text-sky-700">
+                    <a href={c.linkedinUrl} target="_blank" rel="noreferrer" title={c.linkedinMatch ? "Same person in your sheet / web research and the provider" : "LinkedIn"} className="text-[11px] font-semibold text-sky-700">
                       in{c.linkedinMatch ? " ✓" : ""}
                     </a>
                   )}

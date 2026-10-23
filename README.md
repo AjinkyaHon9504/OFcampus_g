@@ -17,7 +17,7 @@ An outreach pipeline for off-campus internship hunting. Each person signs in wit
 4. **Templates**: each user writes their own template for each type of contact (founder, hiring manager, HR, follow-up). Claude can optionally write one opening line tailored to each company, using your sheet's notes and hiring signal.
 5. **Today page**: pick who to mail, preview and edit every mail, then send it from your own Gmail with the right resume attached. Or queue them for the **daily 9:00 AM IST run**.
 6. **Reply tracking**: replies and bounces are read from the Gmail threads. Anyone silent for N days moves to **Follow-ups due**, and follow-ups go out in the same thread.
-7. **Find contact**: type any company name, even one not in your list, and pick *HR / recruiters*, *Founders & hiring managers*, or *Both*. You get their names, titles, emails and LinkedIn, and can mail or queue them right there. Repeat lookups reuse saved contacts, so no credits are spent; **Search again** fetches fresh results. On the Companies page, select rows and click **Find HR** to pull HR contacts for those companies in bulk.
+7. **Find contact**: type any company name, even one not in your list. If you've added a Gemini key, companies outside your list are first researched on the web with Gemini + Google Search: website, LinkedIn page, the names and titles of HR or founders from public pages (indexed LinkedIn profiles, team pages, news), and any careers email printed on the company's own site. Apollo/Hunter then find and verify emails for those people. Gemini is never trusted for emails: anything not on the company's domain is dropped, and web-found people are labelled "found by web search" with a source link. Pick *HR / recruiters*, *Founders & hiring managers*, or *Both*. You get their names, titles, emails and LinkedIn, and can mail or queue them right there. Repeat lookups reuse saved contacts, so no credits are spent; **Search again** fetches fresh results. On the Companies page, select rows and click **Find HR** to pull HR contacts for those companies in bulk.
 8. **Exports**: contacts and companies download as CSV from the dashboard at any time.
 
 ## Stack
@@ -35,6 +35,7 @@ No n8n is needed. The cron job, queue, and reply sync are built in, so there's o
 |---|---|---|
 | Find founders / HR at a company by title | **Apollo** | Largest India coverage for startup and mid-size titles. People search is credit-free, and you pay credits only to reveal emails for the 2–3 people you actually pick. |
 | Gaps + verification | **Hunter** | Domain search by department (exec/HR) and an email verifier. This keeps bounces low, which protects your Gmail reputation. |
+| Companies not in your list | **Gemini** + Google Search | Finds the website, LinkedIn page and public names/titles. It doesn't scrape LinkedIn; it reads what Google has indexed. Optional. |
 | LinkedIn cross-check | Provider data | Apollo returns each person's LinkedIn URL, which is matched against the LinkedIn links and names already in your sheet. Scraping LinkedIn directly breaks its Terms of Service and gets accounts banned, so this app doesn't do it. |
 
 Both providers are optional, but at least one key is needed to find emails. Each user saves their own keys in **Settings**. Keys are encrypted at rest with AES-256-GCM.

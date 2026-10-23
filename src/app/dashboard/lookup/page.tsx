@@ -6,7 +6,7 @@ import { api, Badge, PageHeader, Toast, useData } from "@/components/ui";
 type Focus = "HR" | "FOUNDER" | "MIXED";
 
 interface Result {
-  company: { id: string; name: string; domain: string | null };
+  company: { id: string; name: string; domain: string | null; linkedinUrl: string | null; category: string };
   focus: Focus;
   contacts: ContactRow[];
   note: string;
@@ -57,7 +57,7 @@ export default function Lookup() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <PageHeader title="Find a contact" subtitle="Get HR or founder contacts with emails for any company, whether or not it's in your list." />
+      <PageHeader title="Find a contact" subtitle="Get HR or founder contacts with emails for any company. Companies outside your list are researched on the web first (Gemini + Google Search), then emails come from Apollo/Hunter." />
 
       <form className="card space-y-4 p-5" onSubmit={(e) => { e.preventDefault(); find(); }}>
         <div className="grid gap-3 md:grid-cols-[2fr_1fr]">
@@ -100,7 +100,12 @@ export default function Lookup() {
         <section className="mt-5">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div>
-              <h2 className="font-semibold">{res.company.name} {res.company.domain && <span className="font-mono text-xs font-normal text-slate-500">{res.company.domain}</span>}</h2>
+              <h2 className="flex flex-wrap items-baseline gap-2 font-semibold">
+                {res.company.name}
+                {res.company.domain && <span className="font-mono text-xs font-normal text-slate-500">{res.company.domain}</span>}
+                {res.company.linkedinUrl && <a className="text-xs font-normal text-sky-700 hover:underline" href={res.company.linkedinUrl} target="_blank" rel="noreferrer">LinkedIn page</a>}
+              </h2>
+              {res.company.category && <p className="text-xs text-slate-600">{res.company.category}</p>}
               <p className="text-xs text-slate-500">{res.note}</p>
             </div>
             <div className="flex gap-2">
@@ -129,11 +134,18 @@ export default function Lookup() {
                       <button className="text-xs text-indigo-600 hover:underline" onClick={() => { navigator.clipboard.writeText(c.email!); setToast("Email copied"); }}>copy</button>
                     </div>
                   ) : <div className="text-xs text-slate-400">No email found</div>}
-                  {c.linkedinUrl && (
-                    <a className="text-xs text-sky-700 hover:underline" href={c.linkedinUrl} target="_blank" rel="noreferrer">
-                      LinkedIn{c.linkedinMatch ? " ✓ matches your sheet" : ""}
-                    </a>
-                  )}
+                  <div className="flex flex-wrap gap-3">
+                    {c.linkedinUrl && (
+                      <a className="text-xs text-sky-700 hover:underline" href={c.linkedinUrl} target="_blank" rel="noreferrer">
+                        LinkedIn{c.linkedinMatch ? " ✓ cross-checked" : ""}
+                      </a>
+                    )}
+                    {c.source === "web" && (
+                      <span className="text-xs text-amber-700" title="Found by web research. Check the LinkedIn profile before mailing.">
+                        found by web search{c.sourceUrl && <> · <a className="hover:underline" href={c.sourceUrl} target="_blank" rel="noreferrer">source</a></>}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {c.email && c.status !== "REPLIED" && c.status !== "DO_NOT_CONTACT" && c.status !== "BOUNCED" && (
                   <div className="mt-3 flex gap-2">

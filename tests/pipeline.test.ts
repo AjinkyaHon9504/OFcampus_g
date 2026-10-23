@@ -93,3 +93,31 @@ test("builds a threaded MIME mail with attachment", () => {
   assert.match(mime, /Content-Disposition: attachment; filename="resume.pdf"/);
   assert.ok(mime.includes(Buffer.from("%PDF").toString("base64")));
 });
+
+test("keeps only well-formed, on-domain web research results", async () => {
+  const { parseResearch } = await import("../src/lib/research");
+  const text = "Here you go:\n```json\n" + JSON.stringify({
+    officialName: "Razorpay", domain: "https://www.razorpay.com/", linkedinUrl: "https://www.linkedin.com/company/razorpay/",
+    description: "Payments", hq: "Bengaluru", employees: "3000",
+    people: [
+      { name: "Priya Sharma", title: "Senior Talent Acquisition Partner", linkedinUrl: "https://in.linkedin.com/in/priya-sharma-123/", sourceUrl: "https://in.linkedin.com/in/priya-sharma-123" },
+      { name: "Rahul", title: "Recruiter", linkedinUrl: "", sourceUrl: "" },
+      { name: "Amit Kumar", title: "Engineering Manager", linkedinUrl: "https://example.com/amit", sourceUrl: "" },
+      { name: "Priya Sharma", title: "dup", linkedinUrl: "", sourceUrl: "" },
+    ],
+    publicEmails: [
+      { email: "careers@razorpay.com", sourceUrl: "https://razorpay.com/jobs" },
+      { email: "priya.sharma@gmail.com", sourceUrl: "" },
+      { email: "not-an-email", sourceUrl: "" },
+    ],
+  }) + "\n```";
+  const r = parseResearch(text, "razorpay");
+  assert.equal(r.domain, "razorpay.com");
+  assert.equal(r.linkedinUrl, "https://www.linkedin.com/company/razorpay");
+  assert.deepEqual(r.people.map((p) => [p.name, p.persona, p.linkedinUrl]), [
+    ["Priya Sharma", "HR", "https://in.linkedin.com/in/priya-sharma-123"],
+    ["Amit Kumar", "HIRING_MANAGER", null],
+  ]);
+  assert.deepEqual(r.publicEmails.map((e) => e.email), ["careers@razorpay.com"]);
+  assert.throws(() => parseResearch("no json here", "x"));
+});
