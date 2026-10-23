@@ -81,9 +81,17 @@ export interface EnrichResult {
   note: string;
 }
 
-export async function enrichCompany(userId: string, company: Company & { contacts: Contact[] }, keys: Keys, want = 3): Promise<EnrichResult> {
+// opts.route overrides the company's own route for this run, e.g. "HR" to fetch
+// HR contacts at a startup whose route would normally pick founders.
+export async function enrichCompany(
+  userId: string,
+  company: Company & { contacts: Contact[] },
+  keys: Keys,
+  opts: { want?: number; route?: Route } = {},
+): Promise<EnrichResult> {
   if (!keys.apollo && !keys.hunter) throw new Error("Add an Apollo or Hunter API key in Settings first.");
-  const route = company.route as Route;
+  const route = opts.route ?? (company.route as Route);
+  const want = opts.want ?? 3;
   const notes: string[] = [];
   let domain = company.domain;
   const found: FoundPerson[] = [];
@@ -120,7 +128,7 @@ export async function enrichCompany(userId: string, company: Company & { contact
         }
       } else notes.push(org ? `Apollo matched "${org.name}" — skipped, name differs` : "Apollo: company not found");
     } catch (e) {
-      notes.push(e instanceof ProviderError ? `Apollo error ${e.status}` : String(e));
+      notes.push(e instanceof ProviderError ? `Apollo error ${e.status}` : `Apollo unreachable (${e instanceof Error ? e.message : e})`);
     }
   }
 
@@ -140,7 +148,7 @@ export async function enrichCompany(userId: string, company: Company & { contact
         }
       }
     } catch (e) {
-      notes.push(e instanceof ProviderError ? `Hunter error ${e.status}` : String(e));
+      notes.push(e instanceof ProviderError ? `Hunter error ${e.status}` : `Hunter unreachable (${e instanceof Error ? e.message : e})`);
     }
   } else if (!domain) notes.push("No company domain known — add it on the company to enable Hunter");
 

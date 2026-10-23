@@ -6,6 +6,7 @@ import { signOut } from "next-auth/react";
 const LINKS = [
   ["/dashboard", "Overview"],
   ["/dashboard/today", "Today"],
+  ["/dashboard/lookup", "Find contact"],
   ["/dashboard/contacts", "Contacts"],
   ["/dashboard/companies", "Companies"],
   ["/dashboard/templates", "Templates"],

@@ -17,7 +17,8 @@ An outreach pipeline for off-campus internship hunting. Each person signs in wit
 4. **Templates**: each user writes their own template for each type of contact (founder, hiring manager, HR, follow-up). Claude can optionally write one opening line tailored to each company, using your sheet's notes and hiring signal.
 5. **Today page**: pick who to mail, preview and edit every mail, then send it from your own Gmail with the right resume attached. Or queue them for the **daily 9:00 AM IST run**.
 6. **Reply tracking**: replies and bounces are read from the Gmail threads. Anyone silent for N days moves to **Follow-ups due**, and follow-ups go out in the same thread.
-7. **Exports**: contacts and companies download as CSV from the dashboard at any time.
+7. **Find contact**: type any company name, even one not in your list, and pick *HR / recruiters*, *Founders & hiring managers*, or *Both*. You get their names, titles, emails and LinkedIn, and can mail or queue them right there. Repeat lookups reuse saved contacts, so no credits are spent; **Search again** fetches fresh results. On the Companies page, select rows and click **Find HR** to pull HR contacts for those companies in bulk.
+8. **Exports**: contacts and companies download as CSV from the dashboard at any time.
 
 ## Stack
 

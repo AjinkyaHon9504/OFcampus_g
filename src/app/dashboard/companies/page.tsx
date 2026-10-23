@@ -61,7 +61,7 @@ export default function Companies() {
   }
 
   // Enrich in small batches so each request stays inside the serverless time limit.
-  async function enrich(ids?: string[], max = 25) {
+  async function enrich(ids?: string[], max = 25, routeOverride?: "HR") {
     stop.current = false;
     let done = 0;
     let found = 0;
@@ -72,7 +72,7 @@ export default function Companies() {
         setProgress(`Finding contacts… ${done}/${queue?.length ?? max}`);
         const r = await api<{ results: { company: string; withEmail: number; note: string }[]; remaining: number }>("/api/enrich", {
           method: "POST",
-          body: { companyIds: batch, batch: 3, fitFor: fit || undefined, force: !!queue },
+          body: { companyIds: batch, batch: 3, fitFor: fit || undefined, force: !!queue, route: routeOverride },
         });
         if (!r.results.length) break;
         done += r.results.length;
@@ -109,7 +109,10 @@ export default function Companies() {
         {progress ? (
           <button className="btn-danger" onClick={() => (stop.current = true)}>{progress} · Stop</button>
         ) : ids.length ? (
-          <button className="btn-primary" onClick={() => enrich(ids)}>Find contacts for {ids.length}</button>
+          <>
+            <button className="btn-ghost" onClick={() => enrich(ids, ids.length, "HR")}>Find HR for {ids.length}</button>
+            <button className="btn-primary" onClick={() => enrich(ids)}>Find contacts for {ids.length}</button>
+          </>
         ) : (
           <button className="btn-primary" disabled={!notEnriched} onClick={() => enrich(undefined, 25)}>Find contacts (next 25 by priority)</button>
         )}
