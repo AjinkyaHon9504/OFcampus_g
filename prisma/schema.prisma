@@ -1,0 +1,201 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- NextAuth ----------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+
+  settings    Settings?
+  companies   Company[]
+  contacts    Contact[]
+  templates   Template[]
+  attachments Attachment[]
+  messages    Message[]
+  runs        Run[]
+  createdAt   DateTime     @default(now())
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------- App ----------
+
+model Settings {
+  id            String  @id @default(cuid())
+  userId        String  @unique
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  senderName    String  @default("")
+  phone         String  @default("")
+  githubUrl     String  @default("")
+  linkedinUrl   String  @default("")
+  portfolioUrl  String  @default("")
+  college       String  @default("")
+  pitch         String  @default("") @db.Text // 2-3 lines about you, used by templates + AI
+  fitForFilter  String  @default("") // matches the CSV "Fit for" column; blank = all rows
+  followUpDays  Int     @default(4)
+  maxFollowUps  Int     @default(2)
+  dailyLimit    Int     @default(25)
+  autoSendQueue Boolean @default(true) // daily cron sends QUEUED contacts
+  apolloKeyEnc  String?
+  hunterKeyEnc  String?
+  claudeKeyEnc  String?
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String // TECH_RESUME | NONTECH_RESUME | OTHER
+  filename  String
+  mime      String
+  data      Bytes
+  createdAt DateTime @default(now())
+}
+
+model Company {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rowNo        String    @default("")
+  name         String
+  group        String    @default("")
+  category     String    @default("")
+  type         String    @default("")
+  base         String    @default("")
+  stage        String    @default("")
+  hiringSignal String    @default("") @db.Text
+  internInfo   String    @default("") @db.Text
+  roles        String    @default("")
+  fitFor       String    @default("")
+  notes        String    @default("") @db.Text
+  whoToContact String    @default("") @db.Text
+  sourceUrl    String    @default("")
+  domain       String?
+  seenOn       String    @default("")
+  teamSize     Int?
+  route        String    @default("HR") // FOUNDER | HR | MIXED
+  track        String    @default("TECH") // TECH | NONTECH -> which resume
+  priority     Int       @default(50)
+  status       String    @default("Not started")
+  enrichedAt   DateTime?
+  enrichNote   String?
+  contacts     Contact[]
+  createdAt    DateTime  @default(now())
+
+  @@unique([userId, name])
+}
+
+model Contact {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name            String
+  firstName       String    @default("")
+  title           String    @default("")
+  persona         String    @default("OTHER") // FOUNDER | HIRING_MANAGER | HR | OTHER
+  email           String?
+  emailStatus     String    @default("none") // verified | likely | unverified | none
+  phone           String?
+  linkedinUrl     String?
+  source          String    @default("csv") // csv | apollo | hunter | manual
+  linkedinMatch   Boolean   @default(false) // CSV name/LinkedIn matched the provider's record
+  confidence      Int       @default(0)
+  status          String    @default("NEW") // NEW | QUEUED | SENT | FOLLOW_UP_DUE | REPLIED | BOUNCED | DO_NOT_CONTACT
+  threadId        String?
+  lastMessageId   String? // RFC822 Message-ID of our last mail, for threading follow-ups
+  lastContactedAt DateTime?
+  repliedAt       DateTime?
+  replySnippet    String?   @db.Text
+  followUps       Int       @default(0)
+  notes           String?   @db.Text
+  messages        Message[]
+  createdAt       DateTime  @default(now())
+
+  @@unique([companyId, name])
+  @@index([userId, status])
+}
+
+model Template {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  persona       String // FOUNDER | HIRING_MANAGER | HR | FOLLOW_UP
+  subject       String
+  body          String   @db.Text
+  attachTech    Boolean  @default(true)
+  attachNonTech Boolean  @default(false)
+  autoResume    Boolean  @default(true) // pick resume from company track instead of the two flags
+  useAI         Boolean  @default(false) // let Claude tailor the opening line per company
+  updatedAt     DateTime @updatedAt
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contactId      String
+  contact        Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  direction      String // OUT | IN
+  kind           String // INITIAL | FOLLOW_UP | REPLY
+  gmailId        String   @unique
+  threadId       String
+  subject        String   @default("")
+  snippet        String   @default("") @db.Text
+  at             DateTime @default(now())
+}
+
+model Run {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String // ENRICH | SEND | SYNC | CRON
+  summary   String   @db.Text
+  at        DateTime @default(now())
+}
